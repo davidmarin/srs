@@ -1,6 +1,10 @@
 """Code to make it possible to write simple scrapers and leave the cleanup,
 merging, and normalization of records to the harness that runs them."""
 import logging
+import sys
+from os import listdir
+from os.path import dirname
+
 import scraperwiki
 
 from .db import TABLE_TO_KEY_FIELDS
@@ -38,3 +42,19 @@ def init_tables(tables, with_scraper_id=True, execute=scraperwiki.sql.execute):
         sql += 'PRIMARY KEY ({}))'.format(', '.join(key_fields))
 
         execute(sql)
+
+
+
+def get_scraper_ids(package='scrapers'):
+    __import__(package)
+    package_dir = dirname(sys.modules[package].__file__)
+
+    for filename in sorted(listdir(package_dir)):
+        if filename.endswith('.py') and not filename.startswith('_'):
+            yield filename[:-3]  # meow!
+
+
+def load_scraper(scraper_id, package='scrapers'):
+    module_name = package + '.' + scraper_id
+    __import__(module_name)
+    return sys.modules[module_name]
