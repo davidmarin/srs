@@ -32,13 +32,30 @@ TABLE_TO_KEY_FIELDS = {
     'scraper': [],
 }
 
+_RATING_FIELDS = [
+    # -1 (bad), 0 (mixed), or 1 (good). Lingua franca of ratings
+    ('judgment', 'TINYINT'),
+    # letter grade
+    ('grade', 'TEXT'),
+    # written description (e.g. cannot recommend)
+    ('description', 'TEXT'),
+    # numeric score (higher numbers are good)
+    ('score', 'NUMERIC'),
+    ('min_score', 'NUMERIC'),
+    ('max_score', 'NUMERIC'),
+    # ranking (low numbers are good)
+    ('rank', 'INTEGER'),
+    ('num_ranked', 'INTEGER'),
+    # url for details about the rating
+    ('url', 'TEXT'),
+]
 
 TABLE_TO_EXTRA_FIELDS = {
     'campaign': [('last_scraped', 'TEXT')],
     'campaign_brand_map': [('company', 'TEXT'), ('brand', 'TEXT')],
-    'campaign_brand_rating': RATING_FIELDS,
+    'campaign_brand_rating': _RATING_FIELDS,
     'campaign_category_map': [('category', 'TEXT')],
     'campaign_company_map': [('company', 'TEXT')],
-    'campaign_company_rating': RATING_FIELDS,
+    'campaign_company_rating': _RATING_FIELDS,
     'scraper': [('last_scraped', 'TEXT')],
 }
