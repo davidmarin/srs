@@ -1,5 +1,8 @@
 """Utilities for deailing with ratings."""
 
+# 0 is a really common minimum score
+DEFAULT_MIN_SCORE = 0
+
 
 def grade_to_judgment(grade):
     """Convert a letter grade (e.g. "B+") to a judgment (1 for A or B,
