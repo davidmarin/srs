@@ -1,5 +1,7 @@
 """Table definitions etc."""
-
+import dumptruck
+import sqlite3
+from decimal import Decimal
 
 
 # map from table name to fields used for the primary key (not including
@@ -59,3 +61,9 @@ TABLE_TO_EXTRA_FIELDS = {
     'campaign_company_rating': _RATING_FIELDS,
     'scraper': [('last_scraped', 'TEXT')],
 }
+
+
+def use_decimal_type_in_sqlite():
+    """Use Decimal type for reals in sqlite3. Not reversible."""
+    dumptruck.PYTHON_SQLITE_TYPE_MAP.setdefault(Decimal, 'real')
+    sqlite3.register_adapter(Decimal, str)
