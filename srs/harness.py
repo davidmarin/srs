@@ -23,9 +23,16 @@ ISO_8601_FMT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 log = logging.getLogger(__name__)
 
+# keys that are allowed to be empty
+EMPTY_KEYS = {'scope'}
 
-def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
-                 supported_tables=None):
+# keys that always match scraper_id
+SCRAPER_ID_KEYS = {'campaign_id', 'scraper_id'}
+
+
+def run_scrapers(get_records, supported_tables=None,
+                 scraper_ids=None, skip_scraper_ids=None,
+                 scraper_to_freq=None):
 
     init_tables(supported_tables)
 
@@ -33,9 +40,18 @@ def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
 
     for scraper_id in (scraper_ids or get_scraper_ids()):
         # don't skip scrapers in explicit list
-        if not scraper_ids and scraper_id in skip_scraper_ids:
-            log.info('Skipping scraper: {}'.format(scraper_id))
-            continue
+        if not scraper_ids:
+            if scraper_id in skip_scraper_ids:
+                log.info('Skipping scraper: {}'.format(scraper_id))
+                continue
+
+            scrape_freq = scraper_to_freq.get(scraper_id)
+            if scrape_freq:
+                time_since_scraped = get_time_since_scraped(scraper_id)
+                if time_since_scraped and time_since_scraped < scrape_freq:
+                    log.info('Skipping scraper: {} (ran {} ago)'.format(
+                        scraper_id, time_since_scraped))
+                    continue
 
         log.info('Launching scraper: {}'.format(scraper_id))
         try:
@@ -190,7 +206,8 @@ def add_record(table, record, table_to_key_to_row):
             _add('company', dict(company=company))
 
         # actually clean up and store/merge the record
-        key_fields = TABLE_TO_KEY_FIELDS[table]
+        key_fields = [k for k in TABLE_TO_KEY_FIELDS[table]
+                      if k not in SCRAPER_ID_KEYS]
 
         # clean strings before storing them
         for k in record:
@@ -206,10 +223,10 @@ def add_record(table, record, table_to_key_to_row):
                     raise ValueError('{} has no scheme: {}'.format(
                         k, repr(record)))
 
-        # only scope may be empty/unset
+        # catch empty keys
         for k in key_fields:
             if record.get(k) in (None, ''):
-                if k == 'scope':
+                if k in EMPTY_KEYS:  # only scope may be empty
                     record[k] = ''
                 else:
                     raise ValueError('empty {} field for `{}`: {}'.format(
@@ -238,7 +255,11 @@ def save_records_from_scraper(records, scraper_id, supported_tables=None):
 
     for table, record in records:
         if table not in supported_tables:
-            raise ValueError('unsupported table `{}`'.format(table))
+            # campaign scrapers often don't specify "campaign_"
+            if 'campaign_' + table in supported_tables:
+                table = 'campaign_' + table
+            else:
+                raise ValueError('unsupported table `{}`'.format(table))
         add_record(table, record, table_to_key_to_row)
 
     # add the time this campaign was scraped
@@ -249,10 +270,23 @@ def save_records_from_scraper(records, scraper_id, supported_tables=None):
     delete_records_from_scraper(scraper_id, supported_tables)
 
     for table in table_to_key_to_row:
-        key_fields = TABLE_TO_KEY_FIELDS[table]
+        key_fields = ['scraper_id'] + TABLE_TO_KEY_FIELDS[table]
+        scraper_id_keys = SCRAPER_ID_KEYS & set(key_fields)
 
         for key, row in table_to_key_to_row[table].iteritems():
-            scraperwiki.sql.save(
-                ['scraper_id'] + key_fields,
-                dict(scraper_id=scraper_id, **row),
-                table_name=table)
+            row = row.copy()
+            for k in scraper_id_keys:
+                row[k] = scraper_id
+
+            scraperwiki.sql.save(key_fields, row, table_name=table)
+
+
+def get_time_since_scraped(scraper_id):
+    sql = 'SELECT last_scraped FROM scraper where scraper_id = ?'
+
+    rows = scraperwiki.sql.execute(sql, [scraper_id])['data']
+
+    if rows:
+        return datetime.utcnow() - datetime.strptime(rows[0][0], ISO_8601_FMT)
+    else:
+        return None

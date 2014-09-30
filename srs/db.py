@@ -53,7 +53,6 @@ _RATING_FIELDS = [
 ]
 
 TABLE_TO_EXTRA_FIELDS = {
-    'campaign': [('last_scraped', 'TEXT')],
     'campaign_brand_map': [('company', 'TEXT'), ('brand', 'TEXT')],
     'campaign_brand_rating': _RATING_FIELDS,
     'campaign_category_map': [('category', 'TEXT')],
