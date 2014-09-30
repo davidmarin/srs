@@ -45,13 +45,14 @@ def run_scrapers(get_records, supported_tables=None,
                 log.info('Skipping scraper: {}'.format(scraper_id))
                 continue
 
-            scrape_freq = scraper_to_freq.get(scraper_id)
-            if scrape_freq:
-                time_since_scraped = get_time_since_scraped(scraper_id)
-                if time_since_scraped and time_since_scraped < scrape_freq:
-                    log.info('Skipping scraper: {} (ran {} ago)'.format(
-                        scraper_id, time_since_scraped))
-                    continue
+            if scraper_to_freq:
+                scrape_freq = scraper_to_freq.get(scraper_id)
+                if scrape_freq:
+                    time_since_scraped = get_time_since_scraped(scraper_id)
+                    if time_since_scraped and time_since_scraped < scrape_freq:
+                        log.info('Skipping scraper: {} (ran {} ago)'.format(
+                            scraper_id, time_since_scraped))
+                        continue
 
         log.info('Launching scraper: {}'.format(scraper_id))
         try:
