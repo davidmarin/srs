@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 from os import listdir
 from os.path import dirname
+from traceback import print_exc
 from urlparse import urlparse
 
 import scraperwiki
@@ -23,6 +24,34 @@ ISO_8601_FMT = '%Y-%m-%dT%H:%M:%S.%fZ'
 log = logging.getLogger(__name__)
 
 
+def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
+                 supported_tables=None):
+
+    init_tables(supported_tables)
+
+    failed = []
+
+    for scraper_id in (scraper_ids or get_scraper_ids()):
+        # don't skip scrapers in explicit list
+        if not scraper_ids and scraper_id in skip_scraper_ids:
+            log.info('Skipping scraper: {}'.format(scraper_id))
+            continue
+
+        log.info('Launching scraper: {}'.format(scraper_id))
+        try:
+            scraper = load_scraper(scraper_id)
+            records = get_records(scraper)
+            save_records_from_scraper(records, scraper_id, supported_tables)
+        except:
+            failed.append(scraper_id)
+            print_exc()
+
+    # just calling exit(1) didn't register on morph.io
+    if failed:
+        raise Exception(
+            'failed to scrape campaigns: {}'.format(', '.join(failed)))
+
+
 def delete_records_from_scraper(scraper_id, tables):
     """Clear all data from the given scraper."""
     for table in tables:
@@ -30,7 +59,9 @@ def delete_records_from_scraper(scraper_id, tables):
             'DELETE FROM {} WHERE scraper_id = ?'.format(table), [scraper_id])
 
 
-def init_tables(tables, with_scraper_id=True, execute=scraperwiki.sql.execute):
+def init_tables(tables=None,
+                with_scraper_id=True,
+                execute=scraperwiki.sql.execute):
     """Initialize the given tables.
 
     If with_scraper_id is True (default) include a scraper_id column
@@ -39,6 +70,9 @@ def init_tables(tables, with_scraper_id=True, execute=scraperwiki.sql.execute):
     Generated SQL will be passed to execute (default
     is scraperwiki.sql.execute())
     """
+    if tables is None:
+        tables = sorted(TABLE_TO_KEY_FIELDS)
+
     for table in tables:
         key_fields = TABLE_TO_KEY_FIELDS[table]
         if with_scraper_id:
