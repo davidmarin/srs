@@ -4,21 +4,26 @@ from __future__ import absolute_import
 
 import logging
 import sys
+from datetime import datetime
 from os import listdir
 from os.path import dirname
+from urlparse import urlparse
 
 import scraperwiki
 
 from .db import TABLE_TO_KEY_FIELDS
 from .db import TABLE_TO_EXTRA_FIELDS
 from .norm import TM_SYMBOLS
+from .norm import clean_string
 from .norm import merge
 from .rating import DEFAULT_MIN_SCORE
+
+ISO_8601_FMT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 log = logging.getLogger(__name__)
 
 
-def clear_scraper(scraper_id, tables):
+def delete_records_from_scraper(scraper_id, tables):
     """Clear all data from the given scraper."""
     for table in tables:
         scraperwiki.sql.execute(
@@ -64,17 +69,16 @@ def load_scraper(scraper_id, package='scrapers'):
     return sys.modules[module_name]
 
 
-def add_record(table, record, t2k2r):
+def add_record(table, record, table_to_key_to_row):
     """Add a record for a given table to a map from
-    table -> key -> row (t2k2r). Records will be cleaned up
+    table -> key -> row (table_to_key_to_row). Records will be cleaned up
     and merged with other records using the same key, and
     may lead to the creation of other records.
 
-    You will want one t2k2r per scraper, which you'll
+    You will want one table_to_key_to_row per scraper, which you'll
     then store using store_records.
     """
     record = record.copy()
-
 
     # catch empty fields up front
     for key in 'company', 'brand', 'category':
@@ -149,12 +153,12 @@ def add_record(table, record, t2k2r):
     if 'company' in record and table != 'company':
         add_record('company', dict(company=company))
 
-    _add_record(table, record, t2k2r)
+    _add_record(table, record, table_to_key_to_row)
 
 
-def _add_record(table, record, t2k2r):
+def _add_record(table, record, table_to_key_to_row):
     """Help for add_record(). Clean up *record* and add it to
-    t2k2r, merging with any existing record."""
+    table_to_key_to_row, merging with any existing record."""
     key_fields = TABLE_TO_KEY_FIELDS[table]
 
     # clean strings before storing them
@@ -184,10 +188,38 @@ def _add_record(table, record, t2k2r):
 
     log.debug('`{}` {}: {}'.format(table, repr(key), repr(record)))
 
-    t2k2r.setdefault(table, {})
-    k2r = t2k2r[table]
+    table_to_key_to_row.setdefault(table, {})
+    key_to_row = table_to_key_to_row[table]
 
-    if key in k2r:
-        merge(record, k2r[key])
+    if key in key_to_row:
+        merge(record, key_to_row[key])
     else:
-        k2r[key] = record
+        key_to_row[key] = record
+
+
+def save_records_from_scraper(records, scraper_id, supported_tables=None):
+    if supported_tables is None:
+        supported_tables = set(TABLE_TO_KEY_FIELDS)
+
+    table_to_key_to_row = {}
+
+    for table, record in records:
+        if table not in supported_tables:
+            raise ValueError('unsupported table `{}`'.format(table))
+        add_record(table, record, table_to_key_to_row)
+
+    # add the time this campaign was scraped
+    add_record('scraper',
+               dict(last_scraped=datetime.utcnow().strftime(ISO_8601_FMT)),
+               table_to_key_to_row)
+
+    delete_records_from_scraper(scraper_id)
+
+    for table in table_to_key_to_row:
+        key_fields = TABLE_TO_KEY_FIELDS[table]
+
+        for key, row in table_to_key_to_row[table].iteritems():
+            scraperwiki.sql.save(
+                ['scraper_id'] + key_fields,
+                dict(scraper_id=scraper_id, **row),
+                table_name=table)
