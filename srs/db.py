@@ -3,6 +3,8 @@ import dumptruck
 import sqlite3
 from decimal import Decimal
 
+import scraperwiki
+
 
 # map from table name to fields used for the primary key (not including
 # campaign_id). All key fields are currently TEXT
@@ -60,6 +62,32 @@ TABLE_TO_EXTRA_FIELDS = {
     'campaign_company_rating': _RATING_FIELDS,
     'scraper': [('last_scraped', 'TEXT')],
 }
+
+
+
+def create_table_if_not_exists(table,
+                               with_scraper_id=True,
+                               execute=scraperwiki.sql.execute):
+    """Create the given table if it does not already exist.
+
+    If with_scraper_id is True (default) include a scraper_id column
+    in the primary key for each table.
+
+    Generated SQL will be passed to execute (default
+    is scraperwiki.sql.execute())
+    """
+    key_fields = TABLE_TO_KEY_FIELDS[table]
+    if with_scraper_id:
+        key_fields = ['scraper_id'] + key_fields
+
+    sql = 'CREATE TABLE IF NOT EXISTS `{}` ('.format(table)
+    for k in key_fields:
+        sql += '`{}` TEXT, '.format(k)
+    for k, field_type in TABLE_TO_EXTRA_FIELDS.get(table) or ():
+        sql += '`{}` {}, '.format(k, field_type)
+    sql += 'PRIMARY KEY ({}))'.format(', '.join(key_fields))
+
+    execute(sql)
 
 
 def use_decimal_type_in_sqlite():

@@ -7,13 +7,14 @@ import sys
 from datetime import datetime
 from os import listdir
 from os.path import dirname
+from sqlite3 import OperationalError
 from traceback import print_exc
 from urlparse import urlparse
 
 import scraperwiki
 
 from .db import TABLE_TO_KEY_FIELDS
-from .db import TABLE_TO_EXTRA_FIELDS
+from .db import create_table_if_not_exists
 from .norm import TM_SYMBOLS
 from .norm import clean_string
 from .norm import merge
@@ -30,11 +31,8 @@ EMPTY_KEYS = {'scope'}
 SCRAPER_ID_KEYS = {'campaign_id', 'scraper_id'}
 
 
-def run_scrapers(get_records, supported_tables=None,
-                 scraper_ids=None, skip_scraper_ids=None,
+def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
                  scraper_to_freq=None):
-
-    init_tables(supported_tables)
 
     failed = []
 
@@ -58,7 +56,7 @@ def run_scrapers(get_records, supported_tables=None,
         try:
             scraper = load_scraper(scraper_id)
             records = get_records(scraper)
-            save_records_from_scraper(records, scraper_id, supported_tables)
+            save_records_from_scraper(records, scraper_id)
         except:
             failed.append(scraper_id)
             print_exc()
@@ -69,40 +67,16 @@ def run_scrapers(get_records, supported_tables=None,
             'failed to scrape campaigns: {}'.format(', '.join(failed)))
 
 
-def delete_records_from_scraper(scraper_id, tables):
+def delete_records_from_scraper(scraper_id):
     """Clear all data from the given scraper."""
-    for table in tables:
-        scraperwiki.sql.execute(
-            'DELETE FROM {} WHERE scraper_id = ?'.format(table), [scraper_id])
-
-
-def init_tables(tables=None,
-                with_scraper_id=True,
-                execute=scraperwiki.sql.execute):
-    """Initialize the given tables.
-
-    If with_scraper_id is True (default) include a scraper_id column
-    in the primary key for each table.
-
-    Generated SQL will be passed to execute (default
-    is scraperwiki.sql.execute())
-    """
-    if tables is None:
-        tables = sorted(TABLE_TO_KEY_FIELDS)
-
-    for table in tables:
-        key_fields = TABLE_TO_KEY_FIELDS[table]
-        if with_scraper_id:
-            key_fields = ['scraper_id'] + key_fields
-
-        sql = 'CREATE TABLE IF NOT EXISTS `{}` ('.format(table)
-        for k in key_fields:
-            sql += '`{}` TEXT, '.format(k)
-        for k, field_type in TABLE_TO_EXTRA_FIELDS.get(table) or ():
-            sql += '`{}` {}, '.format(k, field_type)
-        sql += 'PRIMARY KEY ({}))'.format(', '.join(key_fields))
-
-        execute(sql)
+    for table in sorted(TABLE_TO_KEY_FIELDS):
+        try:
+            scraperwiki.sql.execute(
+                'DELETE FROM {} WHERE scraper_id = ?'.format(table),
+                [scraper_id])
+        except OperationalError as e:
+            if 'no such table' not in e.message:
+                raise
 
 
 def get_scraper_ids(package='scrapers'):
@@ -248,19 +222,16 @@ def add_record(table, record, table_to_key_to_row):
     _add(table, record)
 
 
-def save_records_from_scraper(records, scraper_id, supported_tables=None):
-    if supported_tables is None:
-        supported_tables = set(TABLE_TO_KEY_FIELDS)
-
+def save_records_from_scraper(records, scraper_id):
     table_to_key_to_row = {}
 
     for table, record in records:
-        if table not in supported_tables:
+        if table not in TABLE_TO_KEY_FIELDS:
             # campaign scrapers often don't specify "campaign_"
-            if 'campaign_' + table in supported_tables:
+            if 'campaign_' + table in TABLE_TO_KEY_FIELDS:
                 table = 'campaign_' + table
             else:
-                raise ValueError('unsupported table `{}`'.format(table))
+                raise ValueError('unknown table `{}`'.format(table))
         add_record(table, record, table_to_key_to_row)
 
     # add the time this campaign was scraped
@@ -268,9 +239,11 @@ def save_records_from_scraper(records, scraper_id, supported_tables=None):
                dict(last_scraped=datetime.utcnow().strftime(ISO_8601_FMT)),
                table_to_key_to_row)
 
-    delete_records_from_scraper(scraper_id, supported_tables)
+    delete_records_from_scraper(scraper_id)
 
     for table in table_to_key_to_row:
+        create_table_if_not_exists(table)
+
         key_fields = ['scraper_id'] + TABLE_TO_KEY_FIELDS[table]
         scraper_id_keys = SCRAPER_ID_KEYS & set(key_fields)
 
