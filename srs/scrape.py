@@ -4,8 +4,16 @@
 import re
 from os import rename
 from tempfile import NamedTemporaryFile
+from urllib2 import Request
 from urllib2 import urlopen
 
+from bs4 import BeautifulSoup
+
+
+DEFAULT_HEADERS = {
+    'Accept': 'text/html',
+    'User-Agent': 'Mozilla/5.0',
+}
 
 CHUNK_SIZE = 1024  # for download()
 
@@ -30,6 +38,19 @@ def download(url, dest):
 
         f.close()
         rename(f.name, dest)
+
+
+def scrape(url, headers=None):
+    """Return the bytes from the given page."""
+    if headers is None:
+        headers=DEFAULT_HEADERS
+
+    return urlopen(Request(url, headers=headers)).read()
+
+
+def scrape_soup(url, headers=None):
+    """Scrape the given page, and convert to BeautifulSoup."""
+    return BeautifulSoup(scrape(url, headers))
 
 
 def scrape_copyright(soup, required=True):
