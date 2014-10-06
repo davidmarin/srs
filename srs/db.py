@@ -67,7 +67,7 @@ TABLE_TO_EXTRA_FIELDS = {
 
 def create_table_if_not_exists(table,
                                with_scraper_id=True,
-                               execute=scraperwiki.sql.execute):
+                               execute=None):
     """Create the given table if it does not already exist.
 
     If with_scraper_id is True (default) include a scraper_id column
@@ -76,6 +76,9 @@ def create_table_if_not_exists(table,
     Generated SQL will be passed to execute (default
     is scraperwiki.sql.execute())
     """
+    if execute is None:
+        execute = scraperwiki.sql.execute
+
     key_fields = TABLE_TO_KEY_FIELDS[table]
     if with_scraper_id:
         key_fields = ['scraper_id'] + key_fields
@@ -94,3 +97,15 @@ def use_decimal_type_in_sqlite():
     """Use Decimal type for reals in sqlite3. Not reversible."""
     dumptruck.PYTHON_SQLITE_TYPE_MAP.setdefault(Decimal, 'real')
     sqlite3.register_adapter(Decimal, str)
+
+
+def show_tables(execute=None):
+    """List the tables in the given db."""
+    sql = "SELECT name FROM sqlite_master WHERE type = 'table'"
+
+    if execute is None:
+        rows = scraperwiki.sql.execute(sql)['data']
+    else:
+        rows = list(execute(sql))
+
+    return sorted(row[0] for row in rows)
