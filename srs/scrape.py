@@ -2,12 +2,34 @@
 """Scrape Twitter handles, facebook URLs, etc. out of a page.
 """
 import re
+from os import rename
+from tempfile import NamedTemporaryFile
+from urllib2 import urlopen
+
+
+CHUNK_SIZE = 1024  # for download()
+
 
 FACEBOOK_URL_RE = re.compile(
     r'^https?://(www\.)facebook\.com/(([\w-]+)|pages/[\w-]+/\d+)/?$', re.I)
 
 TWITTER_URL_RE = re.compile(r'^https?://(www\.)?twitter\.com/(\w+)/?$', re.I)
 TWITTER_FALSE_POSITIVES = {'share'}
+
+
+
+def download(url, dest):
+    """Download url to the given path, moving it into place when done."""
+    with NamedTemporaryFile(prefix=dest + '.tmp.', dir='.', delete=False) as f:
+        src = urlopen(url)
+        while True:
+            chunk = src.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            f.write(chunk)
+
+        f.close()
+        rename(f.name, dest)
 
 
 def scrape_copyright(soup, required=True):
