@@ -3,6 +3,4 @@
 .DS_Store
 \#*#
 *.pyc
-
-data.sqlite
-scraperwiki.sqlite
+*.sqlite
