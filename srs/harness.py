@@ -251,7 +251,9 @@ def save_records_from_scraper(records, scraper_id):
     for table in table_to_key_to_row:
         create_table_if_not_exists(table)
 
-        key_fields = ['scraper_id'] + TABLE_TO_KEY_FIELDS[table]
+        key_fields = TABLE_TO_KEY_FIELDS[table]
+        if 'scraper_id' not in key_fields:
+            key_fields = ['scraper_id'] + key_fields
         scraper_id_keys = SCRAPER_ID_KEYS & set(key_fields)
 
         for key, row in table_to_key_to_row[table].iteritems():
