@@ -95,8 +95,12 @@ def download_db(db_name, morph_project='spendright-scrapers', force=False):
 
 
 def open_db(db_name=DEFAULT_DB_NAME):
-    """Open the (local) sqlite database of the given name."""
-    return sqlite3.connect(db_name + DB_FILE_EXT)
+    """Open the (local) sqlite database of the given name.
+    Use sqlite3.Row as our row_factory to wrap rows like dicts.
+    """
+    db = sqlite3.connect(db_name + DB_FILE_EXT)
+    db.row_factory = sqlite3.Row
+    return db
 
 
 def open_dt(db_name=DEFAULT_DB_NAME):
