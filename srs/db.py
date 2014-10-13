@@ -43,10 +43,11 @@ TABLE_TO_KEY_FIELDS = {
     'scraper_brand_map': [
         'scraper_id', 'scraper_company', 'scraper_brand'],
     # map from category from scraper to canonical version
-    'campaign_category_map': ['scraper_id', 'scraper_category'],
+    'scraper_category_map': ['scraper_id', 'scraper_category'],
     # map from company from scraper to canonical version
-    'campaign_company_map': ['scraper_id', 'scraper_company'],
-
+    'scraper_company_map': ['scraper_id', 'scraper_company'],
+    # map from url to twitter handle, etc. found at that URL
+    'url': ['url'],
 }
 
 _RATING_FIELDS = [
