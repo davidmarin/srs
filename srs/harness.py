@@ -7,14 +7,14 @@ import sys
 from datetime import datetime
 from os import listdir
 from os.path import dirname
-from sqlite3 import OperationalError
 from traceback import print_exc
 from urlparse import urlparse
 
-import scraperwiki
-
 from .db import TABLE_TO_KEY_FIELDS
 from .db import create_table_if_not_exists
+from .db import open_db
+from .db import open_dt
+from .db import show_tables
 from .norm import TM_SYMBOLS
 from .norm import clean_string
 from .norm import merge
@@ -67,16 +67,21 @@ def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
             'failed to scrape campaigns: {}'.format(', '.join(failed)))
 
 
-def delete_records_from_scraper(scraper_id):
+def delete_records_from_scraper(scraper_id, db=None):
     """Clear all data from the given scraper."""
-    for table in sorted(TABLE_TO_KEY_FIELDS):
-        try:
-            scraperwiki.sql.execute(
-                'DELETE FROM {} WHERE scraper_id = ?'.format(table),
-                [scraper_id])
-        except OperationalError as e:
-            if 'no such table' not in e.message:
-                raise
+    if db is None:
+        db = open_db()
+
+    tables = show_tables(db)
+
+    for table in tables:
+        if table not in TABLE_TO_KEY_FIELDS:
+            log.warn('Unknown table `{}`, not clearing'.format(table))
+            continue
+
+        db.execute(
+            'DELETE FROM {} WHERE scraper_id = ?'.format(table),
+            [scraper_id])
 
 
 def get_scraper_ids(package='scrapers'):
@@ -241,10 +246,14 @@ def save_records_from_scraper(records, scraper_id):
 
     delete_records_from_scraper(scraper_id)
 
+    dt = open_dt()
+
     for table in table_to_key_to_row:
         create_table_if_not_exists(table)
 
-        key_fields = ['scraper_id'] + TABLE_TO_KEY_FIELDS[table]
+        key_fields = TABLE_TO_KEY_FIELDS[table]
+        if 'scraper_id' not in key_fields:
+            key_fields = ['scraper_id'] + key_fields
         scraper_id_keys = SCRAPER_ID_KEYS & set(key_fields)
 
         for key, row in table_to_key_to_row[table].iteritems():
@@ -252,13 +261,16 @@ def save_records_from_scraper(records, scraper_id):
             for k in scraper_id_keys:
                 row[k] = scraper_id
 
-            scraperwiki.sql.save(key_fields, row, table_name=table)
+            dt.upsert(row, table)
 
 
-def get_time_since_scraped(scraper_id):
+def get_time_since_scraped(scraper_id, db=None):
+    if db is None:
+        db = open_db()
+
     sql = 'SELECT last_scraped FROM scraper where scraper_id = ?'
 
-    rows = scraperwiki.sql.execute(sql, [scraper_id])['data']
+    rows = list(db.execute(sql, [scraper_id]))
 
     if rows:
         return datetime.utcnow() - datetime.strptime(rows[0][0], ISO_8601_FMT)

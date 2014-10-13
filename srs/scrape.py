@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Scrape Twitter handles, facebook URLs, etc. out of a page.
 """
+import json
 import re
 from os import rename
 from tempfile import NamedTemporaryFile
@@ -46,6 +47,10 @@ def scrape(url, headers=None):
         headers=DEFAULT_HEADERS
 
     return urlopen(Request(url, headers=headers)).read()
+
+
+def scrape_json(url, headers=None):
+    return json.loads(scrape(url, headers))
 
 
 def scrape_soup(url, headers=None):
