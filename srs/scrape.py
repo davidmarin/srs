@@ -16,6 +16,8 @@ DEFAULT_HEADERS = {
     'User-Agent': 'Mozilla/5.0',
 }
 
+DEFAULT_TIMEOUT = 30
+
 CHUNK_SIZE = 1024  # for download()
 
 
@@ -41,21 +43,21 @@ def download(url, dest):
         rename(f.name, dest)
 
 
-def scrape(url, headers=None):
+def scrape(url, headers=DEFAULT_HEADERS, timeout=DEFAULT_TIMEOUT):
     """Return the bytes from the given page."""
     if headers is None:
         headers=DEFAULT_HEADERS
 
-    return urlopen(Request(url, headers=headers)).read()
+    return urlopen(Request(url, headers=headers), timeout=timeout).read()
 
 
-def scrape_json(url, headers=None):
-    return json.loads(scrape(url, headers))
+def scrape_json(url, **kwargs):
+    return json.loads(scrape(url, **kwargs))
 
 
-def scrape_soup(url, headers=None):
+def scrape_soup(url, **kwargs):
     """Scrape the given page, and convert to BeautifulSoup."""
-    return BeautifulSoup(scrape(url, headers))
+    return BeautifulSoup(scrape(url, **kwargs))
 
 
 def scrape_copyright(soup, required=True):
