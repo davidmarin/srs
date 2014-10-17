@@ -17,4 +17,5 @@ def log_to_stderr(verbose=False, quiet=False, format=DEFAULT_FORMAT):
 
     logging.basicConfig(format=format, level=level)
     if not verbose:
-        logging.getLogger('requests').setLevel(logging.WARN)
+        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(
+            logging.WARN)
