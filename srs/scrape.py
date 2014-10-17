@@ -3,13 +3,17 @@
 """
 import json
 import re
+from logging import getLogger
 from os import rename
 from tempfile import NamedTemporaryFile
+from time import sleep
 from urllib2 import Request
 from urllib2 import urlopen
+from urllib2 import URLError
 
 from bs4 import BeautifulSoup
 
+from .vendor.reppy.cache import RobotsCache
 
 DEFAULT_HEADERS = {
     'Accept': 'text/html',
@@ -27,6 +31,15 @@ FACEBOOK_URL_RE = re.compile(
 TWITTER_URL_RE = re.compile(r'^https?://(www\.)?twitter\.com/(\w+)/?$', re.I)
 TWITTER_FALSE_POSITIVES = {'share'}
 
+ROBOTS = RobotsCache(timeout=DEFAULT_TIMEOUT)
+
+log = getLogger(__name__)
+
+
+class DisallowedByRobotsTxtError(URLError):
+    def __init__(self):
+        super(DisallowedByRobotsTxtError, self).__init__(
+            'disallowed by robots.txt')
 
 
 def download(url, dest):
@@ -43,10 +56,23 @@ def download(url, dest):
         rename(f.name, dest)
 
 
-def scrape(url, headers=DEFAULT_HEADERS, timeout=DEFAULT_TIMEOUT):
-    """Return the bytes from the given page."""
+def scrape(url, headers=DEFAULT_HEADERS, timeout=DEFAULT_TIMEOUT,
+           ignore_robots_txt=False):
+    """Return the bytes from the given page, respecting robots.txt
+    by default."""
     if headers is None:
         headers=DEFAULT_HEADERS
+
+    if not ignore_robots_txt:
+        user_agent = headers.get('User-Agent', '')
+
+        if not ROBOTS.allowed(url, user_agent):
+            raise DisallowedByRobotsTxtError()
+
+        crawl_delay = ROBOTS.delay(url, user_agent)
+        if crawl_delay:
+            log.debug('sleeping for {} seconds (crawl-delay)')
+            sleep(crawl_delay)
 
     return urlopen(Request(url, headers=headers), timeout=timeout).read()
 
