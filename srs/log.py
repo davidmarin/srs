@@ -16,3 +16,5 @@ def log_to_stderr(verbose=False, quiet=False, format=DEFAULT_FORMAT):
         level = logging.WARN
 
     logging.basicConfig(format=format, level=level)
+    if not verbose:
+        logging.getLogger('request').setLevel(logging.WARN)
