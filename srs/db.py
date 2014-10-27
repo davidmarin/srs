@@ -13,10 +13,7 @@ from .scrape import download
 
 log = logging.getLogger(__name__)
 
-DB_FILE_EXT = '.sqlite'
-
 DEFAULT_DB_NAME = 'data'
-DEFAULT_DB_PATH = DEFAULT_DB_NAME + DB_FILE_EXT
 
 # map from table name to fields used for the primary key (not including
 # campaign_id). All key fields are currently TEXT
@@ -81,7 +78,8 @@ TABLE_TO_EXTRA_FIELDS = {
 def download_db(db_name, morph_project='spendright-scrapers', force=False):
     """Download the given DB from morph.io. If force is False (the default)
     only download it if there isn't already a local file by that name."""
-    db_path = db_name + DB_FILE_EXT
+    db_path = get_db_path(db_name)
+
     if force or not exists(db_path):
         if 'MORPH_API_KEY' not in environ:
             raise ValueError(
@@ -99,14 +97,19 @@ def open_db(db_name=DEFAULT_DB_NAME):
     """Open the (local) sqlite database of the given name.
     Use sqlite3.Row as our row_factory to wrap rows like dicts.
     """
-    db = sqlite3.connect(db_name + DB_FILE_EXT)
+    db = sqlite3.connect(get_db_path(db_name))
     db.row_factory = sqlite3.Row
     return db
 
 
+def get_db_path(db_name):
+    """Get the path of the given DB."""
+    return db_name + '.sqlite'
+
+
 def open_dt(db_name=DEFAULT_DB_NAME):
     """Open a dumptruck for the sqlite database of the given name."""
-    return DumpTruck(db_name + DB_FILE_EXT)
+    return DumpTruck(get_db_path(db_name))
 
 
 def create_table_if_not_exists(table,
