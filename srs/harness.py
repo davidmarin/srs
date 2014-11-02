@@ -15,12 +15,13 @@ from .db import create_table_if_not_exists
 from .db import open_db
 from .db import open_dt
 from .db import show_tables
+from .iso_8601 import iso_now
+from .iso_8601 import from_iso
 from .norm import TM_SYMBOLS
 from .norm import clean_string
 from .norm import merge
 from .rating import DEFAULT_MIN_SCORE
 
-ISO_8601_FMT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 log = logging.getLogger(__name__)
 
@@ -243,8 +244,8 @@ def save_records_from_scraper(records, scraper_id):
 
     # add the time this campaign was scraped
     add_record('scraper',
-               dict(last_scraped=datetime.utcnow().strftime(ISO_8601_FMT)),
-               table_to_key_to_row)
+               dict(last_scraped=iso_now()),
+                    table_to_key_to_row)
 
     delete_records_from_scraper(scraper_id)
 
@@ -275,6 +276,6 @@ def get_time_since_scraped(scraper_id, db=None):
     rows = list(db.execute(sql, [scraper_id]))
 
     if rows:
-        return datetime.utcnow() - datetime.strptime(rows[0][0], ISO_8601_FMT)
+        return datetime.utcnow() - from_iso(rows[0][0])
     else:
         return None
