@@ -2,9 +2,9 @@
 """Normalization and cleanup."""
 import re
 
+from unidecode import unidecode
 
 TM_SYMBOLS = u'®\u2120™'  # 2120 is SM symbol
-
 
 # matches all whitespace, including non-ascii (e.g. non-breaking space)
 WHITESPACE_RE = re.compile(r'\s+', re.U)
@@ -24,3 +24,9 @@ def merge(src, dst):
     for k, v in src.iteritems():
         if v is not None and (v != '' or not dst.get(k)):
             dst[k] = v
+
+
+def smunch(s):
+    """Normalize s and remove whitespace. Useful for, say
+    matching brand names against things in alt tags."""
+    return WHITESPACE_RE.sub('', unidecode(s).lower())
