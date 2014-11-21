@@ -71,7 +71,8 @@ def scrape(url, headers=DEFAULT_HEADERS, timeout=DEFAULT_TIMEOUT,
 
         crawl_delay = ROBOTS.delay(url, user_agent)
         if crawl_delay:
-            log.debug('sleeping for {} seconds (crawl-delay)')
+            log.debug('sleeping for {:.1f} seconds (crawl-delay)'.format(
+                crawl_delay))
             sleep(crawl_delay)
 
     return urlopen(Request(url, headers=headers), timeout=timeout).read()
