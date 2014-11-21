@@ -57,9 +57,13 @@ def download(url, dest):
 
 
 def scrape(url, headers=DEFAULT_HEADERS, timeout=DEFAULT_TIMEOUT,
-           ignore_robots_txt=False):
+           ignore_robots_txt=False, data=None):
     """Return the bytes from the given page, respecting robots.txt
-    by default."""
+    by default.
+
+    To do a POST request, set data to urlencoded query params
+    (same as data argument to urlopen()).
+    """
     if headers is None:
         headers=DEFAULT_HEADERS
 
@@ -75,7 +79,8 @@ def scrape(url, headers=DEFAULT_HEADERS, timeout=DEFAULT_TIMEOUT,
                 crawl_delay))
             sleep(crawl_delay)
 
-    return urlopen(Request(url, headers=headers), timeout=timeout).read()
+    return urlopen(
+        Request(url, headers=headers), data=data, timeout=timeout).read()
 
 
 def scrape_json(url, **kwargs):
