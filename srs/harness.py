@@ -80,9 +80,11 @@ def delete_records_from_scraper(scraper_id, db=None):
             log.warn('Unknown table `{}`, not clearing'.format(table))
             continue
 
+        db.rollback()
         db.execute(
             'DELETE FROM {} WHERE scraper_id = ?'.format(table),
             [scraper_id])
+        db.commit()
 
 
 def get_scraper_ids(package='scrapers'):
