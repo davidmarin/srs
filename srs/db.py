@@ -24,8 +24,13 @@ TABLE_TO_KEY_FIELDS = {
     'brand_category': ['company', 'brand', 'category'],
     # info about a campaign's creator, etc.
     'campaign': ['campaign_id'],
+    # short statements (good/bad/mixed) about a brand
+    'campaign_brand_claim': [
+        'campaign_id', 'company', 'brand', 'scope', 'claim'],
     # should you buy this brand?
     'campaign_brand_rating': ['campaign_id', 'company', 'brand', 'scope'],
+    # short statements (good/bad/mixed) about a company
+    'campaign_company_claim': ['campaign_id', 'company', 'scope', 'claim'],
     # should you buy from this company?
     'campaign_company_rating': ['campaign_id', 'company', 'scope'],
     # category hierarchy information
