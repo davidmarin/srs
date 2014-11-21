@@ -89,7 +89,15 @@ def scrape_json(url, **kwargs):
 
 def scrape_soup(url, **kwargs):
     """Scrape the given page, and convert to BeautifulSoup."""
-    return BeautifulSoup(scrape(url, **kwargs))
+    html = scrape(url, **kwargs)
+
+    # assume utf8 (sometimes BeautifulSoup fails to do this)
+    try:
+        html = html.decode('utf8')
+    except UnicodeDecodeError:
+        pass
+
+    return BeautifulSoup(html)
 
 
 def scrape_copyright(soup, required=True):
