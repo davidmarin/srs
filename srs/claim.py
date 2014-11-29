@@ -16,18 +16,27 @@ from __future__ import unicode_literals
 
 import re
 
-MIXED_CLAIM_RE = re.compile(r'.*\b(but|however|though)\b.*', re.I)
-BAD_CLAIM_RE = re.compile(r'.*\b(not|unresponsive)\b.*', re.I)
+MIXED_CLAIM_RE = re.compile(
+    r'.*\b(but|however|though|'
+    r'(some(\s+public)?\s+information)|'
+    r'basic\s+steps)\b.*', re.I)
+BAD_CLAIM_RE = re.compile(
+    r'.*\b(not|unresponsive|'
+    r'((no|minimal|limited)(\s+public)?\s+information?)|'
+    r'minimal\s+effort)\b.*', re.I)
+GOOD_CLAIM_RE = re.compile(r'.*\b(distinguished)\b.*', re.I)
 
 
-def claim_to_judgment(claim):
+def claim_to_judgment(claim, default=1):
     """General heuristics to infer a claim's judgment based on text."""
     if MIXED_CLAIM_RE.match(claim):
         return 0
     elif BAD_CLAIM_RE.match(claim):
         return -1
-    else:
+    elif GOOD_CLAIM_RE.match(claim):
         return 1
+    else:
+        return default
 
 
 def clarify_claim(claim, clarifications):
