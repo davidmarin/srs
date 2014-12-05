@@ -33,25 +33,19 @@ SCRAPER_ID_KEYS = {'campaign_id', 'scraper_id'}
 
 
 def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
-                 scraper_to_freq=None):
+                 default_freq=None, scraper_to_freq=None,
+                 scraper_to_last_changed=None):
 
     failed = []
 
     for scraper_id in (scraper_ids or get_scraper_ids()):
         # don't skip scrapers in explicit list
-        if not scraper_ids:
-            if scraper_id in skip_scraper_ids:
-                log.info('Skipping scraper: {}'.format(scraper_id))
-                continue
-
-            if scraper_to_freq:
-                scrape_freq = scraper_to_freq.get(scraper_id)
-                if scrape_freq:
-                    time_since_scraped = get_time_since_scraped(scraper_id)
-                    if time_since_scraped and time_since_scraped < scrape_freq:
-                        log.info('Skipping scraper: {} (ran {} ago)'.format(
-                            scraper_id, time_since_scraped))
-                        continue
+        if ((not scraper_ids and scraper_id in skip_scraper_ids) or
+            scraper_ran_recently_enough(
+                scraper_id, default_freq, scraper_to_freq,
+                scraper_to_last_changed)):
+            log.info('Skipping scraper: {}'.format(scraper_id))
+            continue
 
         log.info('Launching scraper: {}'.format(scraper_id))
         try:
@@ -267,7 +261,7 @@ def save_records_from_scraper(records, scraper_id):
             dt.upsert(row, table)
 
 
-def get_time_since_scraped(scraper_id, db=None):
+def get_last_scraped(scraper_id, db=None):
     if db is None:
         db = open_db()
 
@@ -276,6 +270,28 @@ def get_time_since_scraped(scraper_id, db=None):
     rows = list(db.execute(sql, [scraper_id]))
 
     if rows:
-        return datetime.utcnow() - from_iso(rows[0][0])
+        return from_iso(rows[0][0])
     else:
         return None
+
+
+def scraper_ran_recently_enough(
+        scraper_id, default_freq=None, scraper_to_freq=None,
+        scraper_to_last_changed=None):
+    """Should we skip the scraper because it ran recently enough?"""
+    freq = (scraper_to_freq or {}).get(scraper_id, default_freq)
+    if freq is None:
+        return False
+
+    last_scraped = get_last_scraped(scraper_id)
+    if last_scraped is None:
+        return False
+
+    last_changed = (scraper_to_last_changed or {}).get(scraper_id)
+    # doesn't matter if we scraped it before the last modification
+    if last_changed and last_changed > last_scraped:
+        return False
+
+    now = datetime.utcnow()
+
+    return (last_scraped + freq > now)
