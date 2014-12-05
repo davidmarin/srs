@@ -31,11 +31,27 @@ EMPTY_KEYS = {'scope'}
 # keys that always match scraper_id
 SCRAPER_ID_KEYS = {'campaign_id', 'scraper_id'}
 
+# default place to look for scrapers
+DEFAULT_SCRAPERS_PACKAGE = 'scrapers'
+
 
 def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
                  default_freq=None, scraper_to_freq=None,
-                 scraper_to_last_changed=None):
+                 scraper_to_last_changed=None, package=None):
+    """Run scrapers.
 
+    get_records -- takes a single argument (a scraper module) and yields
+        tuples of (table, row) corresponding to the scraped data.
+    scraper_ids -- whitelist of scrapers to run
+    skip_scraper_ids -- blacklist of scrapers not to run (ignored if
+        scraper_ids is set
+    default_freq -- default frequency to run scrapers
+    scraper_to_freq -- custom frequency to run particular scrapers
+    scrapers_to_last_changed -- use to force scrapers to run. map from
+        scraper_id to UTC datetime for when either the code or the data source
+        last changed
+    package -- package to find scraper modules in (default is 'scrapers')
+    """
     failed = []
 
     for scraper_id in (scraper_ids or get_scraper_ids()):
@@ -49,7 +65,7 @@ def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
 
         log.info('Launching scraper: {}'.format(scraper_id))
         try:
-            scraper = load_scraper(scraper_id)
+            scraper = load_scraper(scraper_id, package=package)
             records = get_records(scraper)
             save_records_from_scraper(records, scraper_id)
         except:
@@ -90,7 +106,9 @@ def get_scraper_ids(package='scrapers'):
             yield filename[:-3]  # meow!
 
 
-def load_scraper(scraper_id, package='scrapers'):
+def load_scraper(scraper_id, package=None):
+    package = package or DEFAULT_SCRAPERS_PACKAGE
+
     module_name = package + '.' + scraper_id
     __import__(module_name)
     return sys.modules[module_name]
