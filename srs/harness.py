@@ -56,10 +56,11 @@ def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
 
     for scraper_id in (scraper_ids or get_scraper_ids()):
         # don't skip scrapers in explicit list
-        if ((not scraper_ids and scraper_id in skip_scraper_ids) or
+        if (not scraper_ids and (
+            scraper_id in skip_scraper_ids or
             scraper_ran_recently_enough(
                 scraper_id, default_freq, scraper_to_freq,
-                scraper_to_last_changed)):
+                scraper_to_last_changed))):
             log.info('Skipping scraper: {}'.format(scraper_id))
             continue
 
