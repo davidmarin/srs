@@ -296,11 +296,11 @@ def should_run_scraper(
         default_freq, scraper_to_freq, scraper_to_last_changed):
 
     # whitelist takes precedence
-    if scraper_ids is not None:
+    if scraper_ids:
         return scraper_id in scraper_ids
 
     # then blacklist
-    if scraper_id in skip_scraper_ids:
+    if skip_scraper_ids and scraper_id in skip_scraper_ids:
         return False
 
     # then look at frequency
