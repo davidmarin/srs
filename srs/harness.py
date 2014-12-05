@@ -55,12 +55,9 @@ def run_scrapers(get_records, scraper_ids=None, skip_scraper_ids=None,
     failed = []
 
     for scraper_id in (scraper_ids or get_scraper_ids()):
-        # don't skip scrapers in explicit list
-        if (not scraper_ids and (
-            scraper_id in skip_scraper_ids or
-            scraper_ran_recently_enough(
-                scraper_id, default_freq, scraper_to_freq,
-                scraper_to_last_changed))):
+        if not should_run_scraper(
+                scraper_id, scraper_ids, skip_scraper_ids,
+                default_freq, scraper_to_freq, scraper_to_last_changed):
             log.info('Skipping scraper: {}'.format(scraper_id))
             continue
 
@@ -294,23 +291,32 @@ def get_last_scraped(scraper_id, db=None):
         return None
 
 
-def scraper_ran_recently_enough(
-        scraper_id, default_freq=None, scraper_to_freq=None,
-        scraper_to_last_changed=None):
-    """Should we skip the scraper because it ran recently enough?"""
+def should_run_scraper(
+        scraper_id, scraper_ids, skip_scraper_ids,
+        default_freq, scraper_to_freq, scraper_to_last_changed):
+
+    # whitelist takes precedence
+    if scraper_ids is not None:
+        return scraper_id in scraper_ids
+
+    # then blacklist
+    if scraper_id in skip_scraper_ids:
+        return False
+
+    # then look at frequency
     freq = (scraper_to_freq or {}).get(scraper_id, default_freq)
     if freq is None:
-        return False
+        return True
 
     last_scraped = get_last_scraped(scraper_id)
     if last_scraped is None:
-        return False
+        return True
 
-    last_changed = (scraper_to_last_changed or {}).get(scraper_id)
     # doesn't matter if we scraped it before the last modification
+    last_changed = (scraper_to_last_changed or {}).get(scraper_id)
     if last_changed and last_changed > last_scraped:
-        return False
+        return True
 
     now = datetime.utcnow()
 
-    return (last_scraped + freq > now)
+    return (last_scraped + freq < now)
