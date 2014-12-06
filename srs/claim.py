@@ -22,9 +22,12 @@ MIXED_CLAIM_RE = re.compile(
     r'basic\s+steps)\b.*', re.I)
 BAD_CLAIM_RE = re.compile(
     r'.*\b(not|unresponsive|'
-    r'((no|minimal|limited)(\s+public)?\s+information?)|'
+    r'(no|minimal|limited|little)'
+      r'(\s+public)?\s+(information|evidence|visibility)|'
     r'minimal\s+effort)\b.*', re.I)
 GOOD_CLAIM_RE = re.compile(r'.*\b(distinguished)\b.*', re.I)
+
+SENTENCE_SEP_RE = re.compile(r'(?<=\.)\s+(?=[A-Z0-9])')
 
 
 def claim_to_judgment(claim, default=1):
@@ -57,3 +60,7 @@ def clarify_claim(claim, clarifications):
             claim = claim[:m.end()] + ' ' + suffix + claim[m.end():]
 
     return claim
+
+
+def split_into_sentences(claim):
+    return [part for part in SENTENCE_SEP_RE.split(claim) if part]
