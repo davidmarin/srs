@@ -64,3 +64,22 @@ def clarify_claim(claim, clarifications):
 
 def split_into_sentences(claim):
     return [part for part in SENTENCE_SEP_RE.split(claim) if part]
+
+
+def ltrim_sentence(sentence, initial_phrases):
+    """If sentence starts with one of the phrases in *initial_phrases*
+    (case insensitive), trim that phrase off and then capitalize the next
+    phrase.
+    """
+    if isinstance(initial_phrases, basestring):
+        raise TypeError('initial_phrases should be a sequence, not a string')
+
+    sentence = sentence.lstrip()
+
+    for phrase in initial_phrases:
+        if sentence.lower().startswith(phrase.lower() + ' '):
+            i = len(phrase) + 1
+
+            return (sentence[i:i + 1].upper() + sentence[i + 1:]).lstrip()
+
+    return sentence
