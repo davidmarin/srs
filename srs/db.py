@@ -48,6 +48,8 @@ TABLE_TO_KEY_FIELDS = {
     'scraper_category_map': ['scraper_id', 'scraper_category'],
     # map from company from scraper to canonical version
     'scraper_company_map': ['scraper_id', 'scraper_company'],
+    # which categories are subcategories of others
+    'subcategory': ['category', 'subcategory'],
     # map from url to twitter handle, etc. found at that URL
     'url': ['url'],
 }
@@ -77,6 +79,7 @@ TABLE_TO_EXTRA_FIELDS = {
     'campaign_company_map': [('company', 'TEXT')],
     'campaign_company_rating': _RATING_FIELDS,
     'scraper': [('last_scraped', 'TEXT')],
+    'subcategory': [('is_implied', 'TINYINT')],
 }
 
 
