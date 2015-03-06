@@ -20,29 +20,14 @@ DEFAULT_DB_NAME = 'data'
 TABLE_TO_KEY_FIELDS = {
     # factual information about a brand (e.g. company, url, etc.)
     'brand': ['company', 'brand'],
-    # factual information about which categories a brand belongs to
-    'brand_category': ['company', 'brand', 'category'],
     # info about a campaign's creator, etc.
     'campaign': ['campaign_id'],
-    # short statements (good/bad/mixed) about a brand
-    'campaign_brand_claim': [
-        'campaign_id', 'company', 'brand', 'scope', 'claim'],
-    # should you buy this brand?
-    'campaign_brand_rating': ['campaign_id', 'company', 'brand', 'scope'],
-    # short statements (good/bad/mixed) about a company
-    'campaign_company_claim': ['campaign_id', 'company', 'scope', 'claim'],
-    # should you buy from this company?
-    'campaign_company_rating': ['campaign_id', 'company', 'scope'],
     # factual information about which categories a brand/company belongs to
-    'categorize': ['company', 'brand', 'category'],
-    # the name of each category (probably will be replaced with categorize)
-    'category': ['category'],
+    'category': ['company', 'brand', 'category'],
     # short statements (good/bad/mixed) about a brand or company
     'claim': ['campaign_id', 'company', 'brand', 'scope', 'claim'],
     # factual information about a company (e.g. url, email, etc.)
     'company': ['company'],
-    # factual information about which categories a company belongs to
-    'company_category': ['company', 'category'],
     # should you buy from this brand/company?
     'rating': ['campaign_id', 'company', 'brand', 'scope'],
     # used to track when a scraper last ran
@@ -90,12 +75,12 @@ TABLE_TO_EXTRA_FIELDS = {
 }
 
 OBSOLETE_TABLES = {
-    'brand_category': 'categorize',
+    'brand_category': 'category',
     'campaign_brand_claim': 'claim',
     'campaign_brand_rating': 'rating',
     'campaign_company_claim': 'claim',
     'campaign_company_rating': 'rating',
-    'company_category': 'categorize',
+    'company_category': 'category',
 }
 
 
