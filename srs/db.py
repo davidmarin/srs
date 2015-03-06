@@ -33,12 +33,18 @@ TABLE_TO_KEY_FIELDS = {
     'campaign_company_claim': ['campaign_id', 'company', 'scope', 'claim'],
     # should you buy from this company?
     'campaign_company_rating': ['campaign_id', 'company', 'scope'],
-    # category hierarchy information
+    # factual information about which categories a brand/company belongs to
+    'categorize': ['company', 'brand', 'category'],
+    # the name of each category (probably will be replaced with categorize)
     'category': ['category'],
+    # short statements (good/bad/mixed) about a brand or company
+    'claim': ['campaign_id', 'company', 'brand', 'scope', 'claim'],
     # factual information about a company (e.g. url, email, etc.)
     'company': ['company'],
     # factual information about which categories a company belongs to
     'company_category': ['company', 'category'],
+    # should you buy from this brand/company?
+    'rating': ['campaign_id', 'company', 'brand', 'scope'],
     # used to track when a scraper last ran
     'scraper': ['scraper_id'],
     # map from brand from scraper to canonical version
@@ -78,9 +84,20 @@ TABLE_TO_EXTRA_FIELDS = {
     'campaign_category_map': [('category', 'TEXT')],
     'campaign_company_map': [('company', 'TEXT')],
     'campaign_company_rating': _RATING_FIELDS,
+    'rating': _RATING_FIELDS,
     'scraper': [('last_scraped', 'TEXT')],
     'subcategory': [('is_implied', 'TINYINT')],
 }
+
+OBSOLETE_TABLES = {
+    'brand_category': 'categorize',
+    'campaign_brand_claim': 'claim',
+    'campaign_brand_rating': 'rating',
+    'campaign_company_claim': 'claim',
+    'campaign_company_rating': 'rating',
+    'company_category': 'categorize',
+}
+
 
 
 def download_db(db_name, morph_project='spendright-scrapers', force=False):
