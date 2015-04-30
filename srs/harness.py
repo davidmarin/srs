@@ -10,6 +10,7 @@ from os.path import dirname
 from traceback import print_exc
 from urlparse import urlparse
 
+from .db import OBSOLETE_TABLES
 from .db import TABLE_TO_KEY_FIELDS
 from .db import create_table_if_not_exists
 from .db import open_db
@@ -24,9 +25,6 @@ from .rating import DEFAULT_MIN_SCORE
 
 
 log = logging.getLogger(__name__)
-
-# keys that are allowed to be empty
-EMPTY_KEYS = {'scope'}
 
 # keys that always match scraper_id
 SCRAPER_ID_KEYS = {'campaign_id', 'scraper_id'}
@@ -84,7 +82,7 @@ def delete_records_from_scraper(scraper_id, db=None):
     tables = show_tables(db)
 
     for table in tables:
-        if table not in TABLE_TO_KEY_FIELDS:
+        if table not in set(TABLE_TO_KEY_FIELDS) | set(OBSOLETE_TABLES):
             log.warn('Unknown table `{}`, not clearing'.format(table))
             continue
 
@@ -173,11 +171,11 @@ def add_record(table, record, table_to_key_to_row):
         if 'categories' in record:
             if brand:
                 for c in record.pop('categories'):
-                    _add('brand_category', dict(
+                    _add('category', dict(
                         company=company, brand=brand, category=c))
             else:
                 for category in record.pop('categories'):
-                    _add('company_category', dict(
+                    _add('category', dict(
                         company=company, category=category))
 
         # assume min_score of 0 if not specified
@@ -219,7 +217,7 @@ def add_record(table, record, table_to_key_to_row):
         # catch empty keys
         for k in key_fields:
             if record.get(k) in (None, ''):
-                if k in EMPTY_KEYS:  # only scope may be empty
+                if k == 'scope' or (k == 'brand' and table != 'brand'):
                     record[k] = ''
                 else:
                     raise ValueError('empty {} field for `{}`: {}'.format(
