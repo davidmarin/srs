@@ -186,12 +186,6 @@ def add_record(table, record, table_to_key_to_row):
         if 'brand' in record and table != 'brand':
             _add('brand', dict(company=company, brand=brand))
 
-        # automatic category entries
-        if 'category' in record and table != 'category':
-            _add('category', dict(category=record['category']))
-        if 'parent_category' in record:
-            _add('category', dict(category=record['parent_category']))
-
         # automatic company entries
         if 'company' in record and table != 'company':
             _add('company', dict(company=company))
