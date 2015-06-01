@@ -29,7 +29,6 @@ GOOD_CLAIM_RE = re.compile(r'.*\b(distinguished)\b.*', re.I)
 
 SENTENCE_SEP_RE = re.compile(r'(?<=\.)\s+(?=[A-Z0-9])')
 
-
 def claim_to_judgment(claim, default=1):
     """General heuristics to infer a claim's judgment based on text."""
     if MIXED_CLAIM_RE.match(claim):
@@ -52,7 +51,11 @@ def clarify_claim(claim, clarifications):
     Clarifications are tuples of (regex, suffix)
     """
     for regex, suffix in clarifications:
-        if suffix.lower() in claim.lower():  # already clarified
+        # make sure not already clarified. special case: don't count
+        # parentheses on clarification
+        look_for = suffix.lstrip('(').rstrip(')')
+
+        if look_for.lower() in claim.lower():
             continue
 
         m = regex.search(claim)
