@@ -273,6 +273,7 @@ def get_last_scraped(scraper_id, db=None):
     if db is None:
         db = open_db()
 
+    create_table_if_not_exists('scraper')
     sql = 'SELECT last_scraped FROM scraper where scraper_id = ?'
 
     rows = list(db.execute(sql, [scraper_id]))
