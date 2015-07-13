@@ -85,7 +85,8 @@ OBSOLETE_TABLES = {
 
 
 
-def download_db(db_name, morph_project='spendright-scrapers', force=False):
+def download_db(
+        db_name, morph_project='spendright', prefix='scrape-', force=False):
     """Download the given DB from morph.io. If force is False (the default)
     only download it if there isn't already a local file by that name."""
     db_path = get_db_path(db_name)
@@ -95,8 +96,8 @@ def download_db(db_name, morph_project='spendright-scrapers', force=False):
             raise ValueError(
                 'Must set MORPH_API_KEY to download {} db'.format(db_name))
 
-        url = 'https://morph.io/{}/{}/data.sqlite?{}'.format(
-            morph_project, db_name, urlencode(
+        url = 'https://morph.io/{}/{}{}/data.sqlite?{}'.format(
+            morph_project, prefix, db_name, urlencode(
                 {'key': environ['MORPH_API_KEY']}))
 
         log.info('downloading {} -> {}'.format(url, db_path))
